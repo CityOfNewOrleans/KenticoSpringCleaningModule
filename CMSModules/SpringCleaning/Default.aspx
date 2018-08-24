@@ -6,11 +6,7 @@
 <head runat="server">
     <meta charset="utf-8"/>
     <title>Spring Cleaning Control Panel</title>
-    <style>
-        [v-cloak] {
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
     <main id="controls" v-cloak>
@@ -19,81 +15,54 @@
             <h1>Spring Cleaning</h1>
             <p>
                 <span>Total attachments currently stored in database.</span>
-                <span>{{pageModel.TotalAttachmentsInDB}}</span>
+                <span>{{TotalAttachmentsInDB}}</span>
             </p>
             
             <p>
-                <span>Attachments on this site currently stored in database:&nbsp;</span>
-                <span>{{pageModel.SiteAttachmentsInDB}}</span>
+                <span>Attachment Mover:&nbsp;</span>
+                <span v-if="!AttachmentMoverIsRunning">Not&nbsp;</span>
+                <span>Running</span>
             </p>
+            
             <p>
-                <span>Attachment Mover Is Running:&nbsp;</span>
-                <span v-if="pageModel.MoverIsRunning">Yes</span>
-                <span v-if="!pageModel.MoverIsRunning">No</span>
+                <span>Attachment History Remover:&nbsp;</span>
+                <span v-if="!AttachmentHistoryRemoverIsRunning">Not</span>
+                <span>Running</span>
             </p>
 
-            <button 
-                v-if="!pageModel.MoverIsRunning"
-                v-on:click.prevent="postStartCommand"
-            >Start Cleaning</button>
-            <button
-                v-if="pageModel.MoverIsRunning"
-                v-on:click.prevent="postStopCommand"
-            >StopCleaning</button>
+            <div>
+                <div>Move Attachments To File System</div>
+                <div>
+                    <button 
+                        v-disabled="AttachmentMoverIsRunning"
+                        v-on:click.prevent="startAttachmentMover"
+                    >Start</button>
+                    <button
+                        v-disabled="!AttachmentMoverIsRunning"
+                        v-on:click.prevent="stopAttachmentMover"
+                    >Stop</button>
+                </div>
+            </div>
+
+            <progress-dialog
+                v-if="AttachmentMoverIsRunning"
+                :progress="attachmentMoverProgress"
+                v-on:close="stopAttachmentMover"
+            />
+
+            <progress-dialog 
+                v-if="AttachmentHistoryRemoverIsRunning"
+                :progress="attachmentHistoryRemoverProgress"
+                v-on:close="stopAttachmentHistoryRemover"
+            />
 
         </div>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <script>
         const pageModel = <%= js.Serialize(Model) %>;
     </script>
-    <script>
-        (() => {
-            const postData = async (url, data) => {
-                const resp = await fetch(url, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json; charset=utf-8",
-                    },
-                    body: JSON.stringify(data)
-                });
-
-                const json = await resp.json();
-
-                try {
-                    return JSON.parse(json.d);
-                }
-                catch (e) {
-                    return json.d;                    
-                }
-            };
-
-            const vm = new Vue({
-                el: "#controls",
-                data: {
-                    pageModel
-                },
-                methods: {
-                    async postStartCommand() {
-                        const resp = await postData("Default.aspx/StartCleaningProcess",{please: true});
-
-                        if (!resp.Success) return;
-
-                        this.pageModel.MoverIsRunning = resp.Running;
-                    },
-                    async postStopCommand() {
-                        const resp = await postData("Default.aspx/StopCleaningProcess");
-
-                        if (!resp.Success) return;
-
-                        this.pageModel.MoverIsRunning = resp.Running;
-                    }
-                },
-            });
-        })();
-
-    </script>
+    <script type="module" src="js/main.js"></script>
 
 </body>
 </html>

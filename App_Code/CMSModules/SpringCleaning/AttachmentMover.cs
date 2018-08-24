@@ -15,6 +15,8 @@ namespace SpringCleaning
 
         protected bool running { get; set; }
 
+        protected List<string> messageBuffer { get; set; }
+
         protected static readonly object padlock = new object();
 
         protected static Thread RunningThread { get; set; }
@@ -44,16 +46,15 @@ namespace SpringCleaning
         protected AttachmentMover()
         {
             running = false;
+            messageBuffer = new List<string>();
         }
 
         public static void Run()
         {
-            //RunningThread = new Thread(new ThreadStart(instance.RunInternal));
-            //RunningThread.Name = "Attachment Mover";
+            RunningThread = new Thread(new ThreadStart(instance.RunInternal));
+            RunningThread.Name = "AttachmentMover";
 
-            //RunningThread.Start();
-
-            Instance.RunInternal();
+            RunningThread.Start();
         }
 
         public static void Stop()
@@ -69,43 +70,40 @@ namespace SpringCleaning
         }
 
         protected void RunInternal() {
-            using (var sw = File.AppendText(HttpRuntime.AppDomainAppPath + "App_Code/CMSModules/SpringCleaning/log.txt"))
+            try
             {
-                try
+                messageBuffer.Append("Starting cleaning process...");
+
+                var attachments = AttachmentInfoProvider.GetAttachments(null, null, false);
+
+                if (attachments == null) return;
+
+                running = true;
+
+                var sites = SiteInfoProvider.GetSites();
+
+                foreach (var att in attachments)
                 {
-                    sw.WriteLine("Starting cleaning process...");
+                    var attSite = sites.FirstOrDefault(s => s.SiteID == att.AttachmentSiteID);
 
-                    var attachments = AttachmentInfoProvider.GetAttachments(null, null, false);
+                    if (attSite == null) continue;
 
-                    if (attachments == null) return;
+                    AttachmentInfoProvider.EnsurePhysicalFile(att, attSite.SiteName);
+                    AttachmentInfoProvider.DeleteAttachmentInfo(att, false);
 
-                    running = true;
-
-                    var sites = SiteInfoProvider.GetSites();
-
-                    foreach (var att in attachments)
-                    {
-                        var attSite = sites.FirstOrDefault(s => s.SiteID == att.AttachmentSiteID);
-
-                        if (attSite == null) continue;
-
-                        AttachmentInfoProvider.EnsurePhysicalFile(att, attSite.SiteName);
-                        AttachmentInfoProvider.DeleteAttachmentInfo(att, false);
-
-                        sw.WriteLine("Moved " + att.AttachmentName + " to file system");
-                    }
-
-                    sw.WriteLine("Cleaning Process Complete");
-
-                    running = false;
+                    messageBuffer.Append("Moved " + att.AttachmentName + " to file system");
                 }
-                catch (Exception e)
-                {
-                    sw.WriteLine("ERROR --------------------------");
-                    sw.WriteLine(e.Message);
-                    sw.WriteLine(e.StackTrace);
-                    running = false;
-                }
+
+                messageBuffer.Append("Cleaning Process Complete");
+
+                running = false;
+            }
+            catch (Exception e)
+            {
+                messageBuffer.Append("ERROR --------------------------");
+                messageBuffer.Append(e.Message);
+                messageBuffer.Append(e.StackTrace);
+                running = false;
             }
         }
     }

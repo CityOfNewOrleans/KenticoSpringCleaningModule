@@ -18,7 +18,8 @@ public partial class CMSModules_SpringCleaning_Default : CMSPage
         public int TotalAttachmentsInDB { get; set; }
         public int SiteAttachmentsInDB { get; set; }
         public int AttachmentsInFileSystem { get; set; }
-        public bool MoverIsRunning { get; set; }
+        public bool AttachmentMoverIsRunning { get; set; }
+        public bool AttachmentHistoryRemoverIsRunning { get; set; }
     }
 
     public class StartCleaningProcessModel
@@ -45,15 +46,46 @@ public partial class CMSModules_SpringCleaning_Default : CMSPage
         return new PageModel
         {
             TotalAttachmentsInDB = AttachmentInfoProvider.GetCount(),
-            SiteAttachmentsInDB = AttachmentInfoProvider
-                .GetAttachments(null, null, false)
-                .Count(a => a.AttachmentSiteID == SiteContext.CurrentSiteID),
-            MoverIsRunning = AttachmentMover.Running,
+            AttachmentHistoryRemoverIsRunning = AttachmentHistoryRemover.Running,
+            AttachmentMoverIsRunning = AttachmentMover.Running,
         };
     }
 
     [WebMethod]
-    public static string StartCleaningProcess(bool please) 
+    public static string StartMovingAttachmentsToFileSystem() {
+        
+        try {
+            AttachmentMover.Start();
+            return js.Serialize(new {
+                Success = true,
+                Running = 
+            });
+        }
+        catch (Exception e) {
+            
+        }
+    }
+
+    [WebMethod]
+    public static string StopMovingAttachmentsToFileSystem() {
+
+    }
+
+    [WebMethod]
+    public static string GetAttachmentMoverProgress() {
+        
+        var messages = 
+
+        var progress = new {
+            Running = AttachmentMover.Running,
+            Messages = String.Join(System.Environment.NewLine, AttachmentMover.DumpProgress().ToArray());
+        };
+
+        return js.Serialize(progress);
+    }
+
+    [WebMethod]
+    public static string StartRemovingAttachmentHistory(bool please) 
     {
         if (!please)
             return js.Serialize(new {
@@ -61,23 +93,23 @@ public partial class CMSModules_SpringCleaning_Default : CMSPage
                 Message = "You didn't say the magic word...",
             });
 
-        AttachmentMover.Run();
+        AttachmentHistoryRemover.Run();
 
         return js.Serialize(new {
             Sucess = true,
-            AttachmentMover.Running
+            AttachmentHistoryRemover.Running
         });
     }
 
     [WebMethod]
-    public static string StopCleaningProcess()
+    public static string StopRemovingAttachmentHistory()
     {
-        AttachmentMover.Stop();
+        AttachmentHistoryRemover.Stop();
 
         return js.Serialize(new
         {
             Success = true,
-            AttachmentMover.Running,
+            AttachmentHistoryRemover.Running,
         });
 
     }
