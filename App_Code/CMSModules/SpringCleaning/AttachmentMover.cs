@@ -1,6 +1,7 @@
 using CMS.DocumentEngine;
 using CMS.SiteProvider;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -13,9 +14,11 @@ namespace SpringCleaning
 
         protected static AttachmentMover instance;
 
-        protected bool running { get; set; }
+        protected bool RunningInternal { get; set; }
 
-        protected List<string> messageBuffer { get; set; }
+        protected bool Cancelled { get; set; }
+
+        protected List<string> ProgressMessageBuffer { get; set; }
 
         protected static readonly object padlock = new object();
 
@@ -35,7 +38,7 @@ namespace SpringCleaning
         public static bool Running {
             get
             {
-                return Instance.running;
+                return Instance.RunningInternal;
             }
             protected set
             {
@@ -45,14 +48,27 @@ namespace SpringCleaning
 
         protected AttachmentMover()
         {
-            running = false;
-            messageBuffer = new List<string>();
+            RunningInternal = false;
+            ProgressMessageBuffer = new List<string>();
         }
 
-        public static void Run()
+        public static void Start(bool runFake = false)
         {
-            RunningThread = new Thread(new ThreadStart(instance.RunInternal));
-            RunningThread.Name = "AttachmentMover";
+            if (runFake)
+            {
+                RunningThread = new Thread(new ThreadStart(() => instance.RunFake()))
+                {
+                    Name = "AttachmentMover"
+                };
+
+                RunningThread.Start();
+                return;
+            }
+
+            RunningThread = new Thread(new ThreadStart(instance.RunInternal))
+            {
+                Name = "AttachmentMover"
+            };
 
             RunningThread.Start();
         }
@@ -61,29 +77,48 @@ namespace SpringCleaning
         {
             try
             {
-                if (RunningThread != null) RunningThread.Abort();
+                if (RunningThread == null) return;
+
+                Instance.Cancelled = true; 
             }
             catch (Exception e)
             {
-
+                throw e;
             }
+        }
+
+        public static List<string> DumpProgress()
+        {
+            var mb = Instance.ProgressMessageBuffer;
+
+            var outVal = mb.GetRange(0, mb.Count);
+            mb.RemoveRange(0, outVal.Count);
+
+            return outVal;
         }
 
         protected void RunInternal() {
             try
             {
-                messageBuffer.Append("Starting cleaning process...");
+                ProgressMessageBuffer.Add("Starting cleaning process...");
 
                 var attachments = AttachmentInfoProvider.GetAttachments(null, null, false);
 
                 if (attachments == null) return;
 
-                running = true;
+                RunningInternal = true;
 
                 var sites = SiteInfoProvider.GetSites();
 
                 foreach (var att in attachments)
                 {
+                    if (Cancelled)
+                    {
+                        RunningInternal = false;
+                        Cancelled = false;
+                        return;
+                    }
+
                     var attSite = sites.FirstOrDefault(s => s.SiteID == att.AttachmentSiteID);
 
                     if (attSite == null) continue;
@@ -91,20 +126,46 @@ namespace SpringCleaning
                     AttachmentInfoProvider.EnsurePhysicalFile(att, attSite.SiteName);
                     AttachmentInfoProvider.DeleteAttachmentInfo(att, false);
 
-                    messageBuffer.Append("Moved " + att.AttachmentName + " to file system");
+                    ProgressMessageBuffer.Add("Moved " + att.AttachmentName + " to file system");
                 }
 
-                messageBuffer.Append("Cleaning Process Complete");
+                ProgressMessageBuffer.Add("Cleaning Process Complete");
 
-                running = false;
+                RunningInternal = false;
             }
             catch (Exception e)
             {
-                messageBuffer.Append("ERROR --------------------------");
-                messageBuffer.Append(e.Message);
-                messageBuffer.Append(e.StackTrace);
-                running = false;
+                ProgressMessageBuffer.Add("ERROR --------------------------");
+                ProgressMessageBuffer.Add(e.Message);
+                ProgressMessageBuffer.Add(e.StackTrace);
+                RunningInternal = false;
             }
+        }
+
+        protected void RunFake(int iterations = 1000, int sleep = 10)
+        {
+            RunningInternal = true;
+
+            ProgressMessageBuffer.Add("Starting fake run...");
+
+            for (var i = 0; i < iterations; i++)
+            {
+                if (Cancelled)
+                {
+                    RunningInternal = false;
+                    Cancelled = false;
+                    ProgressMessageBuffer.Add("Stopping fake run at cancellation request");
+                    return;
+                }
+
+                ProgressMessageBuffer.Add("Fake iteration " + i);
+
+                Thread.Sleep(sleep);
+            }
+
+            ProgressMessageBuffer.Add("Fake run completed.");
+
+            RunningInternal = false;
         }
     }
 

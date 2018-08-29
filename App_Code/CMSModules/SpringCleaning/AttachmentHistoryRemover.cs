@@ -1,6 +1,7 @@
 using CMS.DocumentEngine;
 using CMS.SiteProvider;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -13,11 +14,11 @@ namespace SpringCleaning
 
         protected static AttachmentHistoryRemover instance;
 
-        protected bool running { get; set; }
+        protected bool RunningInternal { get; set; }
 
-        protected bool cancelled { get; set;}
+        protected bool Cancelled { get; set;}
 
-        protected List<String> progressMessageBuffer { get; set; }
+        protected List<string> ProgressMessageBuffer { get; set; }
 
         protected static readonly object padlock = new object();
 
@@ -37,7 +38,7 @@ namespace SpringCleaning
         public static bool Running {
             get
             {
-                return Instance.running;
+                return Instance.RunningInternal;
             }
             protected set
             {
@@ -47,12 +48,12 @@ namespace SpringCleaning
 
         protected AttachmentHistoryRemover()
         {
-            running = false;
-            progressMessageBuffer = new List<string>();
+            RunningInternal = false;
+            ProgressMessageBuffer = new List<string>();
         }
 
         public static List<string> DumpProgress() {
-            var mb = Instance.progressMessageBuffer;
+            var mb = Instance.ProgressMessageBuffer;
             
             var outVal = mb.GetRange(0, mb.Count);
             mb.RemoveRange(0, outVal.Count);
@@ -60,10 +61,24 @@ namespace SpringCleaning
             return outVal;
         }
 
-        public static void Run()
+        public static void Start(bool runFake = false)
         {
-            RunningThread = new Thread(new ThreadStart(instance.RunInternal));
-            RunningThread.Name = "AttachmentHistoryRemover";
+            if (runFake)
+            {
+                RunningThread = new Thread(new ThreadStart(() => instance.RunFake()))
+                {
+                    Name = "AttachmentHistoryRemover"
+                };
+
+                RunningThread.Start();
+
+                return;
+            }
+
+            RunningThread = new Thread(new ThreadStart(instance.RunInternal))
+            {
+                Name = "AttachmentHistoryRemover"
+            };
 
             RunningThread.Start();
 
@@ -71,43 +86,69 @@ namespace SpringCleaning
 
         public static void Stop()
         {
-            if (Instance.running) Instance.cancelled = true;
+            if (Instance.RunningInternal) Instance.Cancelled = true;
         }
 
         protected void RunInternal() {
             try
             {
-                progressMessageBuffer.Append("Starting attachment history removal process...");
+                ProgressMessageBuffer.Add("Starting attachment history removal process...");
 
-                var attachmentHistories = AttachmentHistoryInfoProvider.GetattachmentHistories();
+                var attachmentHistories = AttachmentHistoryInfoProvider.GetAttachmentHistories();
 
                 if (attachmentHistories == null) return;
 
-                running = true;
+                RunningInternal = true;
 
                 foreach (var ah in attachmentHistories)
                 {
-                    if (cancelled) {
-                        progressMessageBuffer.Append("Attachment history removal process cancelled.");
+                    if (Cancelled) {
+                        ProgressMessageBuffer.Add("Attachment history removal process cancelled.");
                         return;
                     }
 
                     AttachmentHistoryInfoProvider.DeleteAttachmentHistory(ah);
 
-                    progressMessageBuffer.Append("Removed " + ah.AttachmentName + " from db.");
+                    ProgressMessageBuffer.Add("Removed " + ah.AttachmentName + " from db.");
                 }
 
-                progressMessageBuffer.Append("Attachment history removal process complete.");
+                ProgressMessageBuffer.Add("Attachment history removal process complete.");
 
-                running = false;
+                RunningInternal = false;
             }
             catch (Exception e)
             {
-                progressMessageBuffer.Append("ERROR --------------------------");
-                progressMessageBuffer.Append(e.Message);
-                progressMessageBuffer.Append(e.StackTrace);
-                running = false;
+                ProgressMessageBuffer.Add("ERROR --------------------------");
+                ProgressMessageBuffer.Add(e.Message);
+                ProgressMessageBuffer.Add(e.StackTrace);
+                RunningInternal = false;
             }
+        }
+
+        protected void RunFake(int iterations = 1000, int sleep = 10)
+        {
+            RunningInternal = true;
+
+            ProgressMessageBuffer.Add("Starting fake run...");
+
+            for (var i = 0; i < iterations; i++)
+            {
+                if (Cancelled)
+                {
+                    RunningInternal = false;
+                    Cancelled = false;
+                    ProgressMessageBuffer.Add("Stopping fake run at cancellation request");
+                    return;
+                }
+
+                ProgressMessageBuffer.Add("Fake iteration " + i);
+
+                Thread.Sleep(sleep);
+            }
+
+            ProgressMessageBuffer.Add("Fake run completed.");
+
+            RunningInternal = false;
         }
     }
 

@@ -1,13 +1,16 @@
 import Vue from "https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.esm.browser.js";
-import progressDialog from "./progressDialog";
+import progressDialog from "./progressDialog.js";
+
+const parameterize = (data) => (data)
+    ? "?" + Object.keys(data).map((k) => `${k}=${encodeURIComponent(data[k])}`)
+    : "";
 
 const postData = async (url, data) => {
-    const resp = await fetch(url, {
+    const resp = await fetch(url + parameterize(data), {
         method: "POST",
         headers: {
             "Content-Type": "application/json; charset=utf-8",
         },
-        body: JSON.stringify(data)
     });
 
     const json = await resp.json();
@@ -16,7 +19,7 @@ const postData = async (url, data) => {
         return JSON.parse(json.d);
     }
     catch (e) {
-        return json.d;                    
+        return json.d;
     }
 };
 
@@ -29,6 +32,8 @@ const vm = new Vue({
         ...pageModel,
         attachmentMoverProgress: "",
         attachmentHistoryRemoverProgress: "",
+        showAttachmentMoverProgress: false,
+        showAttachmentHistoryRemoverProgress: false,
     },
     methods: {
         async startAttachmentMover() {
@@ -36,8 +41,10 @@ const vm = new Vue({
 
             if (!resp.Success) return;
 
-            this.AttachmentMoverIsRunning = resp.Running;
-            
+            this.showAttachmentMoverProgress = true;
+
+            this.attachmentMoverProgress = "";
+
             this.getAttachmentMoverProgress();
         },
         async stopAttachmentMover() {
@@ -56,11 +63,19 @@ const vm = new Vue({
             if (resp.Running) this.getAttachmentMoverProgress();
         },
         async startAttachmentHistoryRemover() {
+            console.log("start");
+
             const resp = await postData("Default.aspx/StartRemovingAttachmentHistory");
 
             if (!resp.Success) return console.log(resp.Error);
 
             this.AttachmentHistoryRemoverIsRunning = resp.Running;
+
+            this.showAttachmentHistoryRemoverProgress = true;
+
+            this.attachmentHistoryRemoverProgress = "";
+
+            this.getAttachmentHistoryRemoverProgress();
         },
         async stopAttachmentHistoryRemover() {
             const resp = await postData("Default.aspx/StopRemovingAttachmentHistory");
@@ -78,4 +93,8 @@ const vm = new Vue({
             if (resp.Running) this.getAttachmentHistoryRemoverProgress();
         },
     },
+
 });
+
+window.vm = vm;
+
