@@ -19,6 +19,10 @@
                 <span>{{TotalAttachmentsInDB}}</span>
             </h3>
             <h3>
+                <span>Total attachments currently stored in file system:</span>
+                <span>{{TotalAttachmentsInFileSystem}}</span>
+            </h3>
+            <h3>
                 <span>Total attachment histories currently stored in database:</span>
                 <span>{{TotalAttachmentHistoriesInDB}}</span>
             </h3>

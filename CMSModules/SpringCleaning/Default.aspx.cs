@@ -16,8 +16,8 @@ public partial class CMSModules_SpringCleaning_Default : CMSPage
     public class PageModel
     {
         public int TotalAttachmentsInDB { get; set; }
+        public int TotalAttachmentsInFileSystem { get; set; }
         public int TotalAttachmentHistoriesInDB { get; set; }
-        public int SiteAttachmentsInDB { get; set; }
         public int AttachmentsInFileSystem { get; set; }
         public bool AttachmentMoverIsRunning { get; set; }
         public bool AttachmentHistoryRemoverIsRunning { get; set; }
@@ -46,7 +46,12 @@ public partial class CMSModules_SpringCleaning_Default : CMSPage
     {
         return new PageModel
         {
-            TotalAttachmentsInDB = AttachmentInfoProvider.GetCount(),
+            TotalAttachmentsInDB = AttachmentInfoProvider
+                .GetAttachments()
+                .Count(ai => ai.AttachmentBinary != null),
+            TotalAttachmentsInFileSystem = AttachmentInfoProvider
+                .GetAttachments()
+                .Count(ai => ai.AttachmentBinary == null),
             TotalAttachmentHistoriesInDB = AttachmentHistoryInfoProvider.GetCount(),
             AttachmentHistoryRemoverIsRunning = AttachmentHistoryRemover.Running,
             AttachmentMoverIsRunning = AttachmentMover.Running,

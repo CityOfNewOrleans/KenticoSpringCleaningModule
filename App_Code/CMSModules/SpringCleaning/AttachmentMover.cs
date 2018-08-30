@@ -102,15 +102,17 @@ namespace SpringCleaning
             {
                 ProgressMessageBuffer.Add("Starting cleaning process...");
 
-                var attachments = AttachmentInfoProvider.GetAttachments(null, null, false);
+                var attachmentIDs = AttachmentInfoProvider
+                    .GetAttachments(null, "AttachmentName DESC", false)
+                    .Select(att => att.AttachmentID);
 
-                if (attachments == null) return;
+                if (attachmentIDs == null) return;
 
                 RunningInternal = true;
 
                 var sites = SiteInfoProvider.GetSites();
 
-                foreach (var att in attachments)
+                foreach (var aID in attachmentIDs)
                 {
                     if (Cancelled)
                     {
@@ -119,14 +121,18 @@ namespace SpringCleaning
                         return;
                     }
 
+                    var att = AttachmentInfoProvider.GetAttachmentInfo(aID, false);
+
                     var attSite = sites.FirstOrDefault(s => s.SiteID == att.AttachmentSiteID);
 
                     if (attSite == null) continue;
 
                     AttachmentInfoProvider.EnsurePhysicalFile(att, attSite.SiteName);
-                    AttachmentInfoProvider.DeleteAttachmentInfo(att, false);
 
-                    ProgressMessageBuffer.Add("Moved " + att.AttachmentName + " to file system");
+                    att.AttachmentBinary = null;
+                    att.Generalized.UpdateData();
+
+                    ProgressMessageBuffer.Add(att.AttachmentName);
                 }
 
                 ProgressMessageBuffer.Add("Cleaning Process Complete");
