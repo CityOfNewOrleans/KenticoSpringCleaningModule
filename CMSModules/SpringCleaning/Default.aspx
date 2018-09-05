@@ -15,26 +15,30 @@
             <h1>Spring Cleaning</h1>
 
             <h3>
-                <span>Total attachments currently stored in database:</span>
-                <span>{{TotalAttachmentsInDB}}</span>
+                <span>Total attachments:</span>
+                <span>{{TotalAttachments}}</span>
             </h3>
             <h3>
-                <span>Total attachments currently stored in file system:</span>
-                <span>{{TotalAttachmentsInFileSystem}}</span>
-            </h3>
-            <h3>
-                <span>Total attachment histories currently stored in database:</span>
-                <span>{{TotalAttachmentHistoriesInDB}}</span>
+                <span>Total attachment histories:</span>
+                <span>{{TotalAttachmentHistories}}</span>
             </h3>
             <h3>
                 <span>Attachment Mover:&nbsp;</span>
                 <span v-if="!AttachmentMoverIsRunning">Not&nbsp;</span>
                 <span>Running</span>
+                <button 
+                    v-if="AttachmentMoverIsRunning"
+                    v-on:click="openAttachmentMoverDialog"
+                >Show Progress</button>
             </h3>
             <h3>
                 <span>Attachment History Remover:&nbsp;</span>
                 <span v-if="!AttachmentHistoryRemoverIsRunning">Not</span>
                 <span>Running</span>
+                <button
+                    v-if="AttachmentHistoryRemoverIsRunning"
+                    v-on:click="openAttachmentHistoryRemoverDialog"
+                >Show Progress</button>
             </h3>
 
             <div class="control">

@@ -15,17 +15,11 @@ public partial class CMSModules_SpringCleaning_Default : CMSPage
 {
     public class PageModel
     {
-        public int TotalAttachmentsInDB { get; set; }
-        public int TotalAttachmentsInFileSystem { get; set; }
-        public int TotalAttachmentHistoriesInDB { get; set; }
+        public int TotalAttachments { get; set; }
+        public int TotalAttachmentHistories { get; set; }
         public int AttachmentsInFileSystem { get; set; }
         public bool AttachmentMoverIsRunning { get; set; }
         public bool AttachmentHistoryRemoverIsRunning { get; set; }
-    }
-
-    public class StartCleaningProcessModel
-    {
-        public bool please { get; set; }
     }
 
     public static JavaScriptSerializer js { get; set; }
@@ -46,13 +40,8 @@ public partial class CMSModules_SpringCleaning_Default : CMSPage
     {
         return new PageModel
         {
-            TotalAttachmentsInDB = AttachmentInfoProvider
-                .GetAttachments()
-                .Count(ai => ai.AttachmentBinary != null),
-            TotalAttachmentsInFileSystem = AttachmentInfoProvider
-                .GetAttachments()
-                .Count(ai => ai.AttachmentBinary == null),
-            TotalAttachmentHistoriesInDB = AttachmentHistoryInfoProvider.GetCount(),
+            TotalAttachments = AttachmentInfoProvider.GetCount(),
+            TotalAttachmentHistories = AttachmentHistoryInfoProvider.GetCount(),
             AttachmentHistoryRemoverIsRunning = AttachmentHistoryRemover.Running,
             AttachmentMoverIsRunning = AttachmentMover.Running,
         };

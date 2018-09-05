@@ -1,10 +1,12 @@
 using CMS.DocumentEngine;
+using CMS.EventLog;
 using CMS.SiteProvider;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Web;
 
 namespace SpringCleaning
@@ -92,13 +94,14 @@ namespace SpringCleaning
         protected void RunInternal() {
             try
             {
+                RunningInternal = true;
+
                 ProgressMessageBuffer.Add("Starting attachment history removal process...");
 
-                var attachmentHistories = AttachmentHistoryInfoProvider.GetAttachmentHistories();
+                var attachmentHistories = AttachmentHistoryInfoProvider
+                    .GetAttachmentHistories(null, "AttachmentName", 0, "AttachmentHistoryID, AttachmentName");
 
                 if (attachmentHistories == null) return;
-
-                RunningInternal = true;
 
                 foreach (var ah in attachmentHistories)
                 {
@@ -107,7 +110,7 @@ namespace SpringCleaning
                         return;
                     }
 
-                    AttachmentHistoryInfoProvider.DeleteAttachmentHistory(ah);
+                    AttachmentHistoryInfoProvider.DeleteAttachmentHistory(ah.AttachmentHistoryID);
 
                     ProgressMessageBuffer.Add("Removed " + ah.AttachmentName + " from db.");
                 }
@@ -118,9 +121,13 @@ namespace SpringCleaning
             }
             catch (Exception e)
             {
-                ProgressMessageBuffer.Add("ERROR --------------------------");
-                ProgressMessageBuffer.Add(e.Message);
+                ProgressMessageBuffer.Add("Removal stopped after encountering error.");
                 ProgressMessageBuffer.Add(e.StackTrace);
+                ProgressMessageBuffer.Add(e.Message);
+                ProgressMessageBuffer.Add("ERROR --------------------------");
+
+                EventLogProvider.LogEvent(new EventLogInfo("SPRING CLEANING", e.StackTrace, "REMOVE ATTACHMENT HISTORY"));
+
                 RunningInternal = false;
             }
         }

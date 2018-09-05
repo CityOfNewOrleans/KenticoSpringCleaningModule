@@ -1,3 +1,4 @@
+using CMS.DataEngine;
 using CMS.DocumentEngine;
 using CMS.SiteProvider;
 using System;
@@ -100,17 +101,21 @@ namespace SpringCleaning
         protected void RunInternal() {
             try
             {
+                RunningInternal = true;
+
                 ProgressMessageBuffer.Add("Starting cleaning process...");
 
                 var attachmentIDs = AttachmentInfoProvider
-                    .GetAttachments(null, "AttachmentName DESC", false)
+                    .GetAttachments(null, "AttachmentName", false)
                     .Select(att => att.AttachmentID);
 
                 if (attachmentIDs == null) return;
 
-                RunningInternal = true;
-
                 var sites = SiteInfoProvider.GetSites();
+
+                // Configure attachment storage setting keys. Mover won't work without this:
+                SettingsKeyInfoProvider.SetValue("CMSStoreFilesInFileSystem", "True", false);
+                SettingsKeyInfoProvider.SetValue("CMSStoreFilesInDatabase", "False", false);
 
                 foreach (var aID in attachmentIDs)
                 {
@@ -132,7 +137,7 @@ namespace SpringCleaning
                     att.AttachmentBinary = null;
                     att.Generalized.UpdateData();
 
-                    ProgressMessageBuffer.Add(att.AttachmentName);
+                    ProgressMessageBuffer.Add(att.AttachmentName + " copied to file system.");
                 }
 
                 ProgressMessageBuffer.Add("Cleaning Process Complete");

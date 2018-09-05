@@ -1,4 +1,4 @@
-import Vue from "https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.esm.browser.js";
+import Vue from "./vue.esm.browser.js";
 import progressDialog from "./progressDialog.js";
 
 const parameterize = (data) => (data)
@@ -54,13 +54,18 @@ const vm = new Vue({
 
             this.AttachmentMoverIsRunning = resp.Running;
         },
-        async getAttachmentMoverProgress() {
+        async getAttachmentMoverProgress(retries = 0) {
             const resp = await postData("Default.aspx/GetAttachmentMoverProgress");
 
             this.attachmentMoverProgress 
                 = `${resp.Messages}${this.attachmentMoverProgress}`;
 
             if (resp.Running) this.getAttachmentMoverProgress();
+
+            if (!resp.Running && retries < 3)
+                setInterval(() => {
+                    this.getAttachmentMoverProgress(retries++);
+                }, 5000);
         },
         async startAttachmentHistoryRemover() {
             console.log("start");
@@ -71,9 +76,9 @@ const vm = new Vue({
 
             this.AttachmentHistoryRemoverIsRunning = resp.Running;
 
-            this.showAttachmentHistoryRemoverProgress = true;
-
             this.attachmentHistoryRemoverProgress = "";
+
+            this.showAttachmentHistoryRemoverProgress = true;
 
             this.getAttachmentHistoryRemoverProgress();
         },
@@ -84,14 +89,27 @@ const vm = new Vue({
 
             this.AttachmentHistoryRemoverIsRunning = resp.Running;
         },
-        async getAttachmentHistoryRemoverProgress(){
+        async getAttachmentHistoryRemoverProgress(retries = 0){
             const resp = await postData("Default.aspx/GetAttachmentHistoryRemoverProgress");
 
             this.attachmentHistoryRemoverProgress 
                 = `${resp.Messages}${this.attachmentHistoryRemoverProgress}`;
 
             if (resp.Running) this.getAttachmentHistoryRemoverProgress();
+
+            if (!resp.Running && retries < 3)
+                setInterval(() => {
+                    this.getAttachmentHistoryRemoverProgress(retries++);
+                }, 5000);
         },
+        openAttachmentMoverDialog() {
+            this.showAttachmentMoverProgress = true;
+            this.getAttachmentMoverProgress();
+        },
+        openAttachmentHistoryRemoverDialog() {
+            this.showAttachmentHistoryRemoverProgress = true;
+            this.getAttachmentHistoryRemoverProgress();
+        }
     },
 
 });
