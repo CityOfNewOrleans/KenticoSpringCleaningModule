@@ -106,10 +106,22 @@ const vm = new Vue({
             this.showAttachmentMoverProgress = true;
             this.getAttachmentMoverProgress();
         },
+        closeAttachmentMoverDialog() {
+            this.showAttachmentMoverProgress = false;
+
+            if (!this.AttachmentMoverIsRunning)
+                this.attachmentMoverProgress = "";
+        },
         openAttachmentHistoryRemoverDialog() {
             this.showAttachmentHistoryRemoverProgress = true;
             this.getAttachmentHistoryRemoverProgress();
-        }
+        },
+        closeAttachmentHistoeryRemoverDialog() {
+            this.showAttachmentHistoryRemoverProgress = false;
+
+            if (!this.AttachmentHistoryRemoverIsRunning)
+            this.attachmentHistoryRemoverProgress = "";
+        },
     },
 
 });

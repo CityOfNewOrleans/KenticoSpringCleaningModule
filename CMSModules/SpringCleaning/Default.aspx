@@ -74,7 +74,7 @@
                 :title="'Attachment Mover'"
                 :progress="attachmentMoverProgress"
                 v-on:stop="stopAttachmentMover"
-                v-on:close="showAttachmentMoverProgress = false"
+                v-on:close="closeAttachmentMoverProgressDialog"
             ></progress-dialog>
 
             <progress-dialog 
@@ -82,7 +82,7 @@
                 :title="'Attachment History Remover'"
                 :progress="attachmentHistoryRemoverProgress"
                 v-on:stop="stopAttachmentHistoryRemover"
-                v-on:close="showAttachmentHistoryRemoverProgress = false"
+                v-on:close="closeAttachmentHistoryRemoverProgressDialog"
             ></progress-dialog>
 
         </div>
