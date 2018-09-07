@@ -13,7 +13,7 @@ In the Kentico Admin interface:
 
 1. Go to the `Modules` module.
 1. Click `New Module`.
-1. Name it "Spring Cleaning" and give it the code name `Spring Cleaning`
+1. Name it "Spring Cleaning" and give it the code name `SpringCleaning`
 1. Click `Save`.
 1. On the side menu that appears, go to `Sites` and assign the module to any sites you want it to appear in the admin interface for. _It needs to be assigned to at least one site or it will be inaccessible._
 1. Go to `User Interface`. On the `CMS` tree navigator on the side, expand `Administration` > `Custom`.
@@ -25,8 +25,8 @@ In the Kentico Admin interface:
     * Element Target URL: ~\CMSModules\SpringCleaning\Default.aspx
 
 1. Click Save.
-1. In File Explorer, copy the `App-Code`, `CMS_Modules`, and `CMS_Scripts` folders from this repo to the `CMS` folder in you Kentico instance.
-1. Go to the `System` module and restart the site.
+1. In File Explorer, copy the `App_Code`, `CMSModules`, and `CMSScripts` folders from this repo to the `CMS` folder in you Kentico instance.
+1. Go to the `System` module and restart the site, then do a full page refresh.
 
 After all that, the `Spring Cleaning` module should appear in the Kentico Admin menu for the sites you assigned it to.
 
