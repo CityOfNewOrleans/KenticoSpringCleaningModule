@@ -112,11 +112,11 @@ const vm = new Vue({
             if (!this.AttachmentMoverIsRunning)
                 this.attachmentMoverProgress = "";
         },
-        openAttachmentHistoryRemoverDialog() {
+        openAttachmentHistoryRemoverProgressDialog() {
             this.showAttachmentHistoryRemoverProgress = true;
             this.getAttachmentHistoryRemoverProgress();
         },
-        closeAttachmentHistoryRemoverDialog() {
+        closeAttachmentHistoryRemoverProgressDialog() {
             this.showAttachmentHistoryRemoverProgress = false;
 
             if (!this.AttachmentHistoryRemoverIsRunning)
