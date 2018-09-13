@@ -28,7 +28,7 @@
                 <span>Running</span>
                 <button 
                     v-if="AttachmentMoverIsRunning"
-                    v-on:click="openAttachmentMoverDialog"
+                    v-on:click="openAttachmentMoverProgressDialog"
                 >Show Progress</button>
             </h3>
             <h3>
@@ -37,7 +37,7 @@
                 <span>Running</span>
                 <button
                     v-if="AttachmentHistoryRemoverIsRunning"
-                    v-on:click="openAttachmentHistoryRemoverDialog"
+                    v-on:click="openAttachmentHistoryRemoverProgressDialog"
                 >Show Progress</button>
             </h3>
 

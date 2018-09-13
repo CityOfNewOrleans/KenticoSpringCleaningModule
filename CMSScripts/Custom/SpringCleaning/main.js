@@ -102,11 +102,11 @@ const vm = new Vue({
                     this.getAttachmentHistoryRemoverProgress(retries++);
                 }, 5000);
         },
-        openAttachmentMoverDialog() {
+        openAttachmentMoverProgressDialog() {
             this.showAttachmentMoverProgress = true;
             this.getAttachmentMoverProgress();
         },
-        closeAttachmentMoverDialog() {
+        closeAttachmentMoverProgressDialog() {
             this.showAttachmentMoverProgress = false;
 
             if (!this.AttachmentMoverIsRunning)
