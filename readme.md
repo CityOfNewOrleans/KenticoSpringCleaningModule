@@ -13,13 +13,17 @@ In the Kentico Admin interface:
 
 1. Go to the `Modules` module.
 1. Click `New Module`.
-1. Name it "Spring Cleaning" and give it the code name `SpringCleaning`
+1. Fill out the following values:
+
+    * Module Display Name: Spring Cleaning
+    * Module Code Name: SpringCleaning
+
 1. Click `Save`.
 1. On the side menu that appears, go to `Sites` and assign the module to any sites you want it to appear in the admin interface for. _It needs to be assigned to at least one site or it will be inaccessible._
 1. Go to `User Interface`. On the `CMS` tree navigator on the side, expand `Administration` > `Custom`.
 1. Select `Custom` and hit the `+` button. Fill out the following values:
 
-    * Display name: SpringCleaning
+    * Display name: Spring Cleaning
     * Code name: SpringCleaning
     * Element Content Type: URL
     * Element Target URL: ~\CMSModules\SpringCleaning\Default.aspx
