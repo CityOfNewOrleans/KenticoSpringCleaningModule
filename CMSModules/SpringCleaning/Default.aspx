@@ -58,6 +58,19 @@
             <div class="control">
                 <h4>Remove Attachment History</h4>
                 <div>
+                    <label>
+                        <span>Last modified before&nbsp;</span>
+                        <input type="text" v-model="daysBeforeLastModified"/>
+                        <span>&nbsp;days ago.</span>
+                    </label>
+                </div>
+                <div>
+                    <label>
+                        <span>Maximum allowed versions</span>
+                        <input type="text" v-model="maxAllowedVersions"/>
+                    </label>
+                </div>
+                <div>
                     <button
                         :disabled="AttachmentHistoryRemoverIsRunning"
                         v-on:click.prevent="startAttachmentHistoryRemover"
@@ -91,13 +104,12 @@
     <script>
         const pageModel = <%= js.Serialize(Model) %>;
     </script>
-    <!-- <script type="module" src="/CMSScripts/Custom/SpringCleaning/main.js"></script> -->
     <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
     <script>
+        (function () {
 
 
-
-      const progressTemplate = `
+            const progressTemplate = `
 <div class="dialog-backdrop">
 <dialog>
     <h3 class="header">{{title}} Progress...</h3>
@@ -112,156 +124,160 @@
 </div>
 `;
 
-const progressDialog = {
-    template: progressTemplate,
-    props: {
-        title: {
-            type: String,
-            required: true,
-        },
-        progress: {
-            type: String,
-            required: true,
-        },
-    },
-    data() { return {
+            const progressDialog = {
+                template: progressTemplate,
+                props: {
+                    title: {
+                        type: String,
+                        required: true,
+                    },
+                    progress: {
+                        type: String,
+                        required: true,
+                    },
+                },
+                data() {
+                    return {
 
-    };},
-    methods: {
-        invokeStopCallback () {
-            this.stopCallback();
-        }
-    }
+                    };
+                },
+                methods: {
+                    invokeStopCallback() {
+                        this.stopCallback();
+                    }
+                }
 
-};  
+            };
 
-        const parameterize = (data) => (data)
-    ? "?" + Object.keys(data).map((k) => `${k}=${encodeURIComponent(data[k])}`)
-    : "";
+            const parameterize = (data) => (data)
+                ? "?" + Object.keys(data).map((k) => `${k}=${encodeURIComponent(data[k])}`)
+                : "";
 
-    const postData = async (url, data) => {
-        const resp = await fetch(url + parameterize(data), {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json; charset=utf-8",
-            },
-    });
+            const postData = async (url, data) => {
+                const resp = await fetch(url + parameterize(data), {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json; charset=utf-8",
+                    },
+                });
 
-    const json = await resp.json();
+                const json = await resp.json();
 
-    try {
-        return JSON.parse(json.d);
-    }
-    catch (e) {
-        return json.d;
-    }
-};
+                try {
+                    return JSON.parse(json.d);
+                }
+                catch (e) {
+                    return json.d;
+                }
+            };
 
-const vm = new Vue({
-    el: "#controls",
-    components: {
-        "progress-dialog": progressDialog, 
-    },
-    data: {
-        ...pageModel,
-        attachmentMoverProgress: "",
-        attachmentHistoryRemoverProgress: "",
-        showAttachmentMoverProgress: false,
-        showAttachmentHistoryRemoverProgress: false,
-    },
-    methods: {
-        async startAttachmentMover() {
-            const resp = await postData("Default.aspx/StartMovingAttachmentsToFileSystem");
+            const vm = new Vue({
+                el: "#controls",
+                components: {
+                    "progress-dialog": progressDialog,
+                },
+                data: {
+                    ...pageModel,
+                    daysBeforeLastModified: 30,
+                    maxAllowedVersions: 3,
+                    attachmentMoverProgress: "",
+                    attachmentHistoryRemoverProgress: "",
+                    showAttachmentMoverProgress: false,
+                    showAttachmentHistoryRemoverProgress: false,
+                },
+                methods: {
+                    async startAttachmentMover() {
+                        const resp = await postData("Default.aspx/StartMovingAttachmentsToFileSystem");
 
-            if (!resp.Success) return;
+                        if (!resp.Success) return;
 
-            this.showAttachmentMoverProgress = true;
+                        this.showAttachmentMoverProgress = true;
 
-            this.attachmentMoverProgress = "";
+                        this.attachmentMoverProgress = "";
 
-            this.getAttachmentMoverProgress();
-        },
-        async stopAttachmentMover() {
-            const resp = await postData("Default.aspx/StopMovingAttachmentsToFileSystem");
+                        this.getAttachmentMoverProgress();
+                    },
+                    async stopAttachmentMover() {
+                        const resp = await postData("Default.aspx/StopMovingAttachmentsToFileSystem");
 
-            if (!resp.Success) return;
+                        if (!resp.Success) return;
 
-            this.AttachmentMoverIsRunning = resp.Running;
-        },
-        async getAttachmentMoverProgress(retries = 0) {
-            const resp = await postData("Default.aspx/GetAttachmentMoverProgress");
+                        this.AttachmentMoverIsRunning = resp.Running;
+                    },
+                    async getAttachmentMoverProgress(retries = 0) {
+                        const resp = await postData("Default.aspx/GetAttachmentMoverProgress");
 
-            this.attachmentMoverProgress 
-                = `${resp.Messages}${this.attachmentMoverProgress}`;
+                        this.attachmentMoverProgress
+                            = `${resp.Messages}${this.attachmentMoverProgress}`;
 
-            if (resp.Running) this.getAttachmentMoverProgress();
+                        if (resp.Running) this.getAttachmentMoverProgress();
 
-            if (!resp.Running && retries < 3)
-                setInterval(() => {
-                    this.getAttachmentMoverProgress(retries++);
-                }, 5000);
-        },
-        async startAttachmentHistoryRemover() {
-            console.log("start");
+                        if (!resp.Running && retries < 3)
+                            setInterval(() => {
+                                this.getAttachmentMoverProgress(retries++);
+                            }, 5000);
+                    },
+                    async startAttachmentHistoryRemover() {
+                        console.log("start");
 
-            const resp = await postData("Default.aspx/StartRemovingAttachmentHistory");
+                        const resp = await postData("Default.aspx/StartRemovingAttachmentHistory");
 
-            if (!resp.Success) return console.log(resp.Error);
+                        if (!resp.Success) return console.log(resp.Error);
 
-            this.AttachmentHistoryRemoverIsRunning = resp.Running;
+                        this.AttachmentHistoryRemoverIsRunning = resp.Running;
 
-            this.attachmentHistoryRemoverProgress = "";
+                        this.attachmentHistoryRemoverProgress = "";
 
-            this.showAttachmentHistoryRemoverProgress = true;
+                        this.showAttachmentHistoryRemoverProgress = true;
 
-            this.getAttachmentHistoryRemoverProgress();
-        },
-        async stopAttachmentHistoryRemover() {
-            const resp = await postData("Default.aspx/StopRemovingAttachmentHistory");
+                        this.getAttachmentHistoryRemoverProgress();
+                    },
+                    async stopAttachmentHistoryRemover() {
+                        const resp = await postData("Default.aspx/StopRemovingAttachmentHistory");
 
-            if (!resp.Success) return console.log(resp.Error);
+                        if (!resp.Success) return console.log(resp.Error);
 
-            this.AttachmentHistoryRemoverIsRunning = resp.Running;
-        },
-        async getAttachmentHistoryRemoverProgress(retries = 0){
-            const resp = await postData("Default.aspx/GetAttachmentHistoryRemoverProgress");
+                        this.AttachmentHistoryRemoverIsRunning = resp.Running;
+                    },
+                    async getAttachmentHistoryRemoverProgress(retries = 0) {
+                        const resp = await postData("Default.aspx/GetAttachmentHistoryRemoverProgress");
 
-            this.attachmentHistoryRemoverProgress 
-                = `${resp.Messages}${this.attachmentHistoryRemoverProgress}`;
+                        this.attachmentHistoryRemoverProgress
+                            = `${resp.Messages}${this.attachmentHistoryRemoverProgress}`;
 
-            if (resp.Running) this.getAttachmentHistoryRemoverProgress();
+                        if (resp.Running) this.getAttachmentHistoryRemoverProgress();
 
-            if (!resp.Running && retries < 3)
-                setInterval(() => {
-                    this.getAttachmentHistoryRemoverProgress(retries++);
-                }, 5000);
-        },
-        openAttachmentMoverProgressDialog() {
-            this.showAttachmentMoverProgress = true;
-            this.getAttachmentMoverProgress();
-        },
-        closeAttachmentMoverProgressDialog() {
-            this.showAttachmentMoverProgress = false;
+                        if (!resp.Running && retries < 3)
+                            setInterval(() => {
+                                this.getAttachmentHistoryRemoverProgress(retries++);
+                            }, 5000);
+                    },
+                    openAttachmentMoverProgressDialog() {
+                        this.showAttachmentMoverProgress = true;
+                        this.getAttachmentMoverProgress();
+                    },
+                    closeAttachmentMoverProgressDialog() {
+                        this.showAttachmentMoverProgress = false;
 
-            if (!this.AttachmentMoverIsRunning)
-                this.attachmentMoverProgress = "";
-        },
-        openAttachmentHistoryRemoverProgressDialog() {
-            this.showAttachmentHistoryRemoverProgress = true;
-            this.getAttachmentHistoryRemoverProgress();
-        },
-        closeAttachmentHistoryRemoverProgressDialog() {
-            this.showAttachmentHistoryRemoverProgress = false;
+                        if (!this.AttachmentMoverIsRunning)
+                            this.attachmentMoverProgress = "";
+                    },
+                    openAttachmentHistoryRemoverProgressDialog() {
+                        this.showAttachmentHistoryRemoverProgress = true;
+                        this.getAttachmentHistoryRemoverProgress();
+                    },
+                    closeAttachmentHistoryRemoverProgressDialog() {
+                        this.showAttachmentHistoryRemoverProgress = false;
 
-            if (!this.AttachmentHistoryRemoverIsRunning)
-            this.attachmentHistoryRemoverProgress = "";
-        },
-    },
+                        if (!this.AttachmentHistoryRemoverIsRunning)
+                            this.attachmentHistoryRemoverProgress = "";
+                    },
+                },
 
-});
+            });
 
-window.vm = vm;
-
+            window.vm = vm;
+        })();
     </script>
 </body>
 </html>
