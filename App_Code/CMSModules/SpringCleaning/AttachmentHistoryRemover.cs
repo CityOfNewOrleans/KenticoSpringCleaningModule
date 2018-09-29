@@ -91,18 +91,29 @@ namespace SpringCleaning
             if (Instance.RunningInternal) Instance.Cancelled = true;
         }
 
-        protected void RunInternal(int daysBeforeLastModified, int maxAllowedversions) {
+        protected void RunInternal(int daysBeforeLastModified, int maxAllowedVersions) {
             try
             {
                 RunningInternal = true;
 
                 ProgressMessageBuffer.Add("Starting attachment history removal process...");
+                ProgressMessageBuffer.Add(string.Format(
+                    "Limiting attachments older than {0} days to no more than {1} versions", 
+                    daysBeforeLastModified, 
+                    maxAllowedVersions
+                ));
 
-                var cutoffDate = DateTime.Today.AddDays(-daysBeforeLastModified).ToString("yyyy-mm-dd");
+                var cutoffDate = DateTime.Today.AddDays(-daysBeforeLastModified);
 
-                var where = string.Format("AttachmentLastModified < {0}", cutoffDate);
+                var cutoffDateString = string.Format("{0}-{1}-{2}", cutoffDate.Year, cutoffDate.Month + 1, cutoffDate.Day);
 
-                var attachments = AttachmentInfoProvider.GetAttachments(where, "AttachmentName", false);
+                var where = string.Format("AttachmentLastModified < '{0}'", cutoffDateString);
+
+                ProgressMessageBuffer.Add(where);
+
+                var attachments = AttachmentInfoProvider.GetAttachments(where, "AttachmentName", false, 0);
+
+                ProgressMessageBuffer.Add(string.Format("Found {0} attachments last modified before {1}.", attachments.Count, cutoffDateString));
 
                 foreach (var att in attachments)
                 {
@@ -111,11 +122,9 @@ namespace SpringCleaning
                         return;
                     }
 
-                    TruncateAttachmentHistory(att);            
+                    TruncateAttachmentHistory(att, maxAllowedVersions);            
 
-                    ProgressMessageBuffer.Add("Truncated " + att.AttachmentName + " history.");
-
-                    
+                    ProgressMessageBuffer.Add("Truncated history for " + att.AttachmentName);
                 }
 
                 ProgressMessageBuffer.Add("Attachment history removal process complete.");
@@ -137,27 +146,40 @@ namespace SpringCleaning
 
         protected void TruncateAttachmentHistory(AttachmentInfo att, int maxAllowedVersions = 1)
         {
-            // If we delete ALL attachment history, Kentico can't find ANY attacments:
-
-            if (maxAllowedVersions < 1) return;
-
-            var where = string.Format("AttachmentGUID = '{0}'", att.AttachmentGUID);
-
-            var attachmentHistories = AttachmentHistoryInfoProvider
-                .GetAttachmentHistories(where, "AttachmentLastModified", 0, "AttachmentHistoryID, AttachmentName")
-                .BinaryData(false);
-
-            if (attachmentHistories == null) return;
-
-            // DON'T EVER DELETE ALL histories for an attachment. It will become unfindable to Kentico.
-            if (attachmentHistories.Count <= maxAllowedVersions) return;
-
-            var historiesToDelete = attachmentHistories.TopN(attachmentHistories.Count - maxAllowedVersions);
-
-            foreach (var h in historiesToDelete)
+            try
             {
-                h.Generalized.DeleteData();
-                h.Generalized.UpdateData();
+                // If we delete ALL attachment history, Kentico can't find ANY attacments:
+                if (maxAllowedVersions < 1) return;
+
+                var where = string.Format("AttachmentGUID = '{0}'", att.AttachmentGUID);
+
+                var attachmentHistories = AttachmentHistoryInfoProvider
+                    .GetAttachmentHistories(where, "AttachmentLastModified", 0, "AttachmentHistoryID, AttachmentName")
+                    .BinaryData(false);
+
+                if (attachmentHistories == null) return;
+
+                // DON'T EVER DELETE ALL histories for an attachment. It will become unfindable to Kentico.
+                if (attachmentHistories.Count <= maxAllowedVersions) return;
+
+                var historiesToDelete = attachmentHistories.TopN(attachmentHistories.Count - maxAllowedVersions);
+
+                foreach (var h in historiesToDelete)
+                {
+                    h.Generalized.DeleteData();
+                    h.Generalized.UpdateData();
+                }
+            }
+            catch (Exception e)
+            {
+                ProgressMessageBuffer.Add("Removal stopped after encountering error.");
+                ProgressMessageBuffer.Add(e.StackTrace);
+                ProgressMessageBuffer.Add(e.Message);
+                ProgressMessageBuffer.Add("ERROR --------------------------");
+
+                EventLogProvider.LogEvent(new EventLogInfo("SPRING CLEANING", e.StackTrace, "REMOVE ATTACHMENT HISTORY"));
+
+                RunningInternal = false;
             }
         }
         

@@ -59,15 +59,11 @@
                 <h4>Remove Attachment History</h4>
                 <div>
                     <label>
-                        <span>Last modified before&nbsp;</span>
-                        <input type="text" v-model="daysBeforeLastModified"/>
-                        <span>&nbsp;days ago.</span>
-                    </label>
-                </div>
-                <div>
-                    <label>
-                        <span>Maximum allowed versions</span>
-                        <input type="text" v-model="maxAllowedVersions"/>
+                        <span>Limit attachments last modified before&nbsp;</span>
+                        <input type="text" v-model="daysBeforeLastModified" style="width: 30px"/>
+                        <span>&nbsp;days ago to no more than&nbsp;</span>
+                        <input type="text" v-model="maxAllowedVersions" style="width: 30px"/>
+                        <span>&nbsp;versions.</span>
                     </label>
                 </div>
                 <div>
@@ -105,7 +101,7 @@
         const pageModel = <%= js.Serialize(Model) %>;
     </script>
     <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
-    <script>
+    <script type="text/javascript">
         (function () {
 
 
@@ -159,6 +155,7 @@
                     headers: {
                         "Content-Type": "application/json; charset=utf-8",
                     },
+                    body: (data !== undefined) ? JSON.stringify(data) : undefined,
                 });
 
                 const json = await resp.json();
@@ -210,17 +207,26 @@
                         this.attachmentMoverProgress
                             = `${resp.Messages}${this.attachmentMoverProgress}`;
 
-                        if (resp.Running) this.getAttachmentMoverProgress();
+                        if (!resp.Running)
+                            this.AttachmentMoverIsRunning = false;
 
-                        if (!resp.Running && retries < 3)
-                            setInterval(() => {
-                                this.getAttachmentMoverProgress(retries++);
+                        if (resp.Running === true) {
+                            this.getAttachmentMoverProgress(retries);
+                        }
+
+                        if (resp.Running === false && retries < 3) {
+                            setTimeout(() => {
+                                this.getAttachmentMoverProgress(retries + 1);
                             }, 5000);
+                        }
                     },
                     async startAttachmentHistoryRemover() {
-                        console.log("start");
+                        const payload = {
+                            daysBeforeLastModified: this.daysBeforeLastModified,
+                            maxAllowedVersions: this.maxAllowedVersions,
+                        };
 
-                        const resp = await postData("Default.aspx/StartRemovingAttachmentHistory");
+                        const resp = await postData("Default.aspx/StartRemovingAttachmentHistory", payload);
 
                         if (!resp.Success) return console.log(resp.Error);
 
@@ -245,12 +251,18 @@
                         this.attachmentHistoryRemoverProgress
                             = `${resp.Messages}${this.attachmentHistoryRemoverProgress}`;
 
-                        if (resp.Running) this.getAttachmentHistoryRemoverProgress();
+                        if (!resp.Running)
+                            this.AttachmentHistoryRemoverIsRunning = false;
 
-                        if (!resp.Running && retries < 3)
-                            setInterval(() => {
-                                this.getAttachmentHistoryRemoverProgress(retries++);
+                        if (resp.Running === true) {
+                            this.getAttachmentHistoryRemoverProgress();
+                        }
+
+                        if (resp.Running === false && retries < 3) {
+                            setTimeout(() => {
+                                this.getAttachmentHistoryRemoverProgress(retries + 1);
                             }, 5000);
+                        }
                     },
                     openAttachmentMoverProgressDialog() {
                         this.showAttachmentMoverProgress = true;
