@@ -124,7 +124,7 @@ namespace SpringCleaning
 
                     TruncateAttachmentHistory(att, maxAllowedVersions);            
 
-                    ProgressMessageBuffer.Add("Truncated history for " + att.AttachmentName);
+                    
                 }
 
                 ProgressMessageBuffer.Add("Attachment history removal process complete.");
@@ -144,31 +144,53 @@ namespace SpringCleaning
             }
         }
 
-        protected void TruncateAttachmentHistory(AttachmentInfo att, int maxAllowedVersions = 1)
+        protected void TruncateAttachmentHistory(AttachmentInfo att, int maxAllowedVersions = 1, bool clearSingleHistoryBinaries = false)
         {
             try
             {
                 // If we delete ALL attachment history, Kentico can't find ANY attacments:
                 if (maxAllowedVersions < 1) return;
 
-                var where = string.Format("AttachmentGUID = '{0}'", att.AttachmentGUID);
+                var where = string.Format("AttachmentGuid = '{0}'", att.AttachmentGUID);
 
                 var attachmentHistories = AttachmentHistoryInfoProvider
-                    .GetAttachmentHistories(where, "AttachmentLastModified", 0, "AttachmentHistoryID, AttachmentName")
+                    .GetAttachmentHistories(where, "AttachmentLastModified", 0, "AttachmentHistoryID")
                     .BinaryData(false);
 
-                if (attachmentHistories == null) return;
+                var attachmentHistoriesCount = attachmentHistories.Count();
+
+                ProgressMessageBuffer.Add(string.Format("Found {0} histories for {1}", attachmentHistoriesCount, att.AttachmentName));
 
                 // DON'T EVER DELETE ALL histories for an attachment. It will become unfindable to Kentico.
-                if (attachmentHistories.Count <= maxAllowedVersions) return;
+                if (attachmentHistoriesCount <= maxAllowedVersions || attachmentHistoriesCount == 1) return;
 
-                var historiesToDelete = attachmentHistories.TopN(attachmentHistories.Count - maxAllowedVersions);
+                var maxAllowedRange = attachmentHistoriesCount - 1;
+                var range = (maxAllowedVersions > maxAllowedRange)
+                    ? maxAllowedRange
+                    : attachmentHistoriesCount - maxAllowedVersions;
+
+                var historiesToDelete = attachmentHistories.Take(range);
+
+                var historiesToDeleteCount = historiesToDelete.Count();
+
+                if (historiesToDeleteCount == 0) return;
+
+                if (attachmentHistoriesCount - historiesToDeleteCount < 1) return;
 
                 foreach (var h in historiesToDelete)
                 {
                     h.Generalized.DeleteData();
                     h.Generalized.UpdateData();
                 }
+
+                var finalHistoryCount = attachmentHistoriesCount - historiesToDeleteCount;
+
+                ProgressMessageBuffer.Add(string.Format(
+                    "Truncated history for {0} from {1} versions to {2}", 
+                    att.AttachmentName, 
+                    attachmentHistoriesCount, 
+                    finalHistoryCount
+                ));
             }
             catch (Exception e)
             {
