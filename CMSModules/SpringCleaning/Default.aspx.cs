@@ -100,17 +100,16 @@ public partial class CMSModules_SpringCleaning_Default : CMSPage
     }
 
     [WebMethod]
-    public static string StartRemovingAttachmentHistory() 
+    public static string StartRemovingAttachmentHistory(int daysBeforeLastModified, int maxAllowedVersions) 
     {
         try
         {
-            //AttachmentHistoryRemover.Start(runFake: true);
-            AttachmentHistoryRemover.Start();
+            AttachmentHistoryRemover.Start(daysBeforeLastModified, maxAllowedVersions);
 
             return js.Serialize(new
             {
                 Success = true,
-                AttachmentHistoryRemover.Running
+                Running = true,
             });
         }
         catch (Exception e)
