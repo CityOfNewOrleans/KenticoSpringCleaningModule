@@ -18,10 +18,10 @@
                 <span>Total attachments:</span>
                 <span>{{TotalAttachments}}</span>
             </h3>
-            <h3>
+            <%--<h3>
                 <span>Total attachment histories:</span>
                 <span>{{TotalAttachmentHistories}}</span>
-            </h3>
+            </h3>--%>
             <h3>
                 <span>Attachment Mover:&nbsp;</span>
                 <span v-if="!AttachmentMoverIsRunning">Not&nbsp;</span>
@@ -31,7 +31,7 @@
                     v-on:click="openAttachmentMoverProgressDialog"
                 >Show Progress</button>
             </h3>
-            <h3>
+            <%--<h3>
                 <span>Attachment History Remover:&nbsp;</span>
                 <span v-if="!AttachmentHistoryRemoverIsRunning">Not</span>
                 <span>Running</span>
@@ -39,7 +39,7 @@
                     v-if="AttachmentHistoryRemoverIsRunning"
                     v-on:click="openAttachmentHistoryRemoverProgressDialog"
                 >Show Progress</button>
-            </h3>
+            </h3>--%>
 
             <div class="control">
                 <h4>Move Attachments To File System</h4>
@@ -55,7 +55,7 @@
                 </div>
             </div>
 
-            <div class="control">
+            <%--<div class="control">
                 <h4>Remove Attachment History</h4>
                 <div>
                     <label>
@@ -76,7 +76,7 @@
                         v-on:click.prevent="stopAttachmentHistoryRemover"
                     >Stop</button>
                 </div>
-            </div>
+            </div>--%>
 
             <progress-dialog
                 v-if="showAttachmentMoverProgress"
@@ -86,13 +86,13 @@
                 v-on:close="closeAttachmentMoverProgressDialog"
             ></progress-dialog>
 
-            <progress-dialog 
+            <%--<progress-dialog 
                 v-if="showAttachmentHistoryRemoverProgress"
                 :title="'Attachment History Remover'"
                 :progress="attachmentHistoryRemoverProgress"
                 v-on:stop="stopAttachmentHistoryRemover"
                 v-on:close="closeAttachmentHistoryRemoverProgressDialog"
-            ></progress-dialog>
+            ></progress-dialog>--%>
 
         </div>
     </main>
