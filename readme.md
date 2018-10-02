@@ -3,7 +3,7 @@
 This module does two things:
 
 * Moves all attachments from the database to the file system, clearing the binary data out of the db as it goes.
-* Removes all attachment history, permanently destroying the attachment binaries.
+* Removes unneeded attachment history.
 
 All you need to do is install this module in a Kentico 8.2 instance, then a single click will accomplish either of those two things.
 
